@@ -23,82 +23,58 @@ flowchart TB
     C1 -. 支撑 .-> C2
     C1 -. 支撑 .-> C3
 ```
-flowchart LR
-    %% ===============================
+```mermaid
+flowchart TB
     %% BERT 模型总体结构示意图
-    %% ===============================
 
-    %% 输入层
-    subgraph INPUT["输入层（Input Layer）"]
-        direction LR
-        T["原始文本序列<br/>Raw Text"]
-        S["分词与子词切分<br/>Tokenization / Subword Segmentation"]
-        ID["词表映射<br/>Token IDs"]
-        SEG["句子标记<br/>Segment IDs"]
-        POS["位置索引<br/>Position Indices"]
-        MASK["注意力掩码<br/>Attention Mask"]
-        T --> S --> ID
-        ID --> SEG
-        ID --> POS
-        ID --> MASK
-    end
-
-    %% 嵌入层
-    subgraph EMB["嵌入层（Embedding Layer）"]
-        direction LR
-        WE["词嵌入<br/>Token Embeddings"]
-        SE["句段嵌入<br/>Segment Embeddings"]
-        PE["位置嵌入<br/>Position Embeddings"]
-        ADD["向量相加与归一化<br/>Element-wise Sum & LayerNorm"]
-        WE --> ADD
-        SE --> ADD
-        PE --> ADD
-    end
-
-    %% 多层 Transformer Encoder
-    subgraph ENC["编码层（L 层 Transformer Encoder）"]
+    subgraph L0["输入表示层（Input Representation）"]
         direction TB
-
-        subgraph L1["第 1 层 Encoder Layer"]
-            direction TB
-            A1["多头自注意力<br/>Multi-Head Self-Attention"]
-            R1["残差连接 + 层归一化<br/>Residual + LayerNorm"]
-            F1["前馈网络<br/>Position-wise FFN"]
-            R1b["残差连接 + 层归一化<br/>Residual + LayerNorm"]
-            A1 --> R1 --> F1 --> R1b
-        end
-
-        subgraph L2["第 2 层 Encoder Layer"]
-            direction TB
-            A2["多头自注意力"]
-            R2["残差连接 + 层归一化"]
-            F2["前馈网络"]
-            R2b["残差连接 + 层归一化"]
-            A2 --> R2 --> F2 --> R2b
-        end
-
-        %% 省略中间层，仅示意
-        DOTS["⋮<br/>重复 L 次 Encoder 层结构"]
-
-        subgraph LL["第 L 层 Encoder Layer"]
-            direction TB
-            AL["多头自注意力"]
-            RL["残差连接 + 层归一化"]
-            FL["前馈网络"]
-            RLb["残差连接 + 层归一化"]
-            AL --> RL --> FL --> RLb
-        end
-
-        L1 --> L2 --> DOTS --> LL
+        X["原始文本序列"]
+        TK["分词 / 子词切分"]
+        ID["Token IDs"]
+        SID["Segment IDs"]
+        PID["Position IDs"]
+        X --> TK --> ID
+        ID --> SID
+        ID --> PID
     end
 
-    %% 预训练与下游任务头
-    subgraph HEAD["预训练任务与下游任务头（Task Heads）"]
+    subgraph L1["嵌入层（Embedding Layer）"]
         direction TB
-        CLS["[CLS] 向量<br/>Sentence-level Representation"]
-        TOK["序列向量<br/>Token-level Representations"]
+        TE["词嵌入"]
+        SE["句段嵌入"]
+        PE["位置嵌入"]
+        SUM["嵌入向量相加 + LayerNorm"]
+        ID --> TE
+        SID --> SE
+        PID --> PE
+        TE --> SUM
+        SE --> SUM
+        PE --> SUM
+    end
 
-        MLM["掩码语言模型头<br/>Masked Language Modeling Head"]
-        NSP["下一句预测 / 句对分类头<br/>Next Sentence Prediction / Sequence Classification Head"]
-        NER["序列标注 / 下游任务头<br/>Token-level Classification Head<br/>(
-
+    subgraph L2["编码层（L 层 Transformer Encoder）"]
+        direction TB
+        ENC1["第 1 层 Encoder Layer"]
+        ENC2["第 2 层 Encoder Layer"]
+        MID["⋮"]
+        ENCL["第 L 层 Encoder Layer"]
+        ENC1 --> ENC2 --> MID --> ENCL
+    end
+
+    subgraph L3["预训练任务与下游任务层"]
+        direction TB
+        CLS["[CLS] 句级表示"]
+        TOK["Token 级表示"]
+        MLM["掩码语言模型头"]
+        NSP["句对 / 文本分类头"]
+        NER["序列标注任务头"]
+        CLS --> NSP
+        CLS --> MLM
+        TOK --> MLM
+        TOK --> NER
+    end
+
+    L0 --> L1 --> L2
+    L2 --> CLS
+    L2 --> TOK
