@@ -22,5 +22,4 @@ flowchart TB
     B5 --> C1
     C1 -. 支撑 .-> C2
     C1 -. 支撑 .-> C3
-    end
 ```
